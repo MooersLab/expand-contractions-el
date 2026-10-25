@@ -7,7 +7,6 @@
 #+OPTIONS: toc:2 num:nil
 
 [[https://www.gnu.org/licenses/gpl-3.0][https://img.shields.io/badge/License-GPL%20v3-blue.svg]]
-[[https://github.com/MooersLab/expand-contractions.el/actions][https://github.com/MooersLab/expand-contractions.el/actions/workflows/test.yml/badge.svg]]
 [[https://img.shields.io/badge/Emacs-27.1%2B-purple.svg]]
 
 Expand English contractions in Emacs buffers and in files on disk with a single command.
