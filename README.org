@@ -1,0 +1,531 @@
+#+TITLE: expand-contractions.el
+#+AUTHOR: Blaine Mooers
+#+LaTeX_HEADER: \usepackage[margin=0.5in]{geometry}
+#+LaTeX_HEADER: \usepackage{booktabs}
+#+LaTeX_HEADER: \usepackage{makeidx}
+#+LaTeX_HEADER: \makeindex
+#+OPTIONS: toc:2 num:nil
+
+[[https://www.gnu.org/licenses/gpl-3.0][https://img.shields.io/badge/License-GPL%20v3-blue.svg]]
+[[https://github.com/MooersLab/expand-contractions.el/actions][https://github.com/MooersLab/expand-contractions.el/actions/workflows/test.yml/badge.svg]]
+[[https://img.shields.io/badge/Emacs-27.1%2B-purple.svg]]
+
+Expand English contractions in Emacs buffers and in files on disk with a single command.
+
+* Overview
+#+INDEX: overview
+#+INDEX: Grammarly
+
+Dictation software and grammar checkers such as Grammarly often insert contractions into their suggested replacements.
+Formal writing for journals, grant applications, and theses usually avoids contractions.
+This package replaces every contraction in a buffer, a region, a file, or a whole directory without asking about each one.
+
+#+begin_example
+Before:  I don’t think we’ll finish. It’s been a long week, and I'd rather rest.
+After:   I do not think we will finish. It has been a long week, and I would rather rest.
+#+end_example
+
+** Features
+#+INDEX: features
+
+- Fully automatic. One command expands every contraction in the buffer.
+- Case is preserved. =don't= becomes =do not=, =Don't= becomes =Do not=, and =DON'T= becomes =DO NOT=.
+- Title case is detected. =Things We'll Fix= becomes =Things We Will Fix=.
+- Curly quotes are converted to straight quotes first because some programs cannot handle curly quotes.
+- Ambiguous forms are resolved from the next word. =he's been= becomes =he has been=, =I'd gone= becomes =I had gone=, and =I'd go= becomes =I would go=.
+- Code and markup are protected in LaTeX, Markdown, Quarto, and Org files.
+- Files on disk can be processed without visiting them. Supported types are =.tex=, =.md=, =.qmd=, =.Rmd=, =.org=, and =.txt=.
+- Whole directories, Dired marked files, and shell batch runs are supported.
+- An optional minor mode expands contractions every time you save.
+- All edits made by one command are undone with a single undo.
+- The table of about 250 contractions is a plain CSV file that you can edit.
+
+* Requirements
+#+INDEX: requirements
+
+- GNU Emacs 27.1 or later.
+- No other packages are needed.
+
+* Installation
+#+INDEX: installation
+
+** From MELPA (after the package is accepted)
+#+INDEX: installation!MELPA
+
+#+begin_src emacs-lisp
+(use-package expand-contractions
+  :ensure t
+  :bind-keymap ("C-c e" . expand-contractions-command-map))
+#+end_src
+
+** From GitHub with use-package (Emacs 30 or later)
+#+INDEX: installation!use-package
+
+#+begin_src emacs-lisp
+(use-package expand-contractions
+  :vc (:url "https://github.com/MooersLab/expand-contractions.el" :rev :newest)
+  :bind-keymap ("C-c e" . expand-contractions-command-map))
+#+end_src
+
+** With straight.el
+#+INDEX: installation!straight
+
+#+begin_src emacs-lisp
+(straight-use-package
+ '(expand-contractions :type git :host github
+                       :repo "MooersLab/expand-contractions.el"
+                       :files (:defaults "contractions.csv")))
+#+end_src
+
+** Manual installation
+#+INDEX: installation!manual
+
+Clone the repository.
+
+#+begin_src sh
+git clone https://github.com/MooersLab/expand-contractions.el ~/.emacs.d/site-lisp/expand-contractions.el
+#+end_src
+
+Then add these lines to your init file.
+
+#+begin_src emacs-lisp
+(add-to-list 'load-path "~/.emacs.d/site-lisp/expand-contractions.el")
+(require 'expand-contractions)
+(global-set-key (kbd "C-c e") expand-contractions-command-map)
+#+end_src
+
+The file =contractions.csv= must stay in the same directory as =expand-contractions.el=.
+You can point the package to a different file with =expand-contractions-csv-file=.
+
+* Quick start
+#+INDEX: quick start
+
+1. Open a buffer with text that contains contractions.
+2. Run =M-x expand-contractions-buffer= or press =C-c e b=.
+3. The echo area reports the number of contractions that were expanded.
+4. Press =C-/= once if you want to undo all of the changes.
+
+* Tutorial
+#+INDEX: tutorial
+
+This tutorial uses the sample files in the =examples/= directory of the repository.
+Each sample file has a companion file with the =.expected= suffix that shows the result.
+Copy the =examples/= directory to a scratch location so that you can experiment freely.
+
+#+begin_src sh
+cp -r examples /tmp/ec-tutorial
+#+end_src
+
+** Lesson 1. Expand every contraction in a buffer
+#+INDEX: tutorial!buffer
+#+INDEX: expand-contractions-buffer
+
+Open =/tmp/ec-tutorial/sample.txt=.
+It contains the following text.
+
+#+begin_example
+I don’t think we’ll finish today. It’s been a long week, and I'd rather rest.
+DON'T PANIC. You'd better call if you can't come. They'd gone home already.
+She said, “Y'all're welcome,” and we couldn't've been happier.
+#+end_example
+
+Run =M-x expand-contractions-buffer=.
+The buffer now reads as follows.
+
+#+begin_example
+I do not think we will finish today. It has been a long week, and I would rather rest.
+DO NOT PANIC. You had better call if you cannot come. They had gone home already.
+She said, "You all are welcome," and we could not have been happier.
+#+end_example
+
+Notice five things.
+
+1. The curly apostrophes in =don’t=, =we’ll=, and =It’s= were straightened and then expanded.
+2. The curly double quotes around the quotation became straight quotes.
+3. =DON'T= stayed in capitals and =You'd= stayed capitalized.
+4. =It's been= became =It has been= and =They'd gone= became =They had gone= because the next word called for /has/ or /had/.
+5. =couldn't've= became =could not have= rather than =could not've= because the longest contraction always wins.
+
+Press =C-/= once.
+All of the changes disappear together because the command records a single undo step.
+Run the command again before you continue.
+
+** Lesson 2. Work on part of a buffer
+#+INDEX: tutorial!region
+#+INDEX: expand-contractions-region
+#+INDEX: expand-contractions-dwim
+#+INDEX: expand-contractions-at-point
+
+Three commands limit the scope of the work.
+
+- =expand-contractions-region= (=C-c e r=) expands contractions in the active region only.
+- =expand-contractions-dwim= (=C-c e e=) uses the region when it is active and the whole buffer otherwise.
+- =expand-contractions-at-point= (=C-c e p=) expands only the contraction under point.
+
+Type =We won't go.= in the =*scratch*= buffer, put point inside =won't=, and press =C-c e p=.
+The text becomes =We will not go.=
+
+** Lesson 3. Look before you leap
+#+INDEX: tutorial!preview
+#+INDEX: expand-contractions-count
+#+INDEX: expand-contractions-occur
+#+INDEX: expand-contractions-query-buffer
+
+Sometimes you want to see what will change before you change it.
+
+- =expand-contractions-count= (=C-c e c=) reports how many contractions would be expanded. Nothing is changed.
+- =expand-contractions-occur= (=C-c e o=) lists every contraction in an Occur buffer. Press =RET= on a line to jump to it.
+- =expand-contractions-query-buffer= (=C-c e q=) asks about each contraction. Answer =y= to expand, =n= to skip, =!= to expand all of the rest, or =q= to quit.
+
+A prefix argument also turns on query mode for the buffer and region commands.
+For example, =C-u C-c e b= queries each contraction in the buffer.
+
+** Lesson 4. Protect code and markup
+#+INDEX: tutorial!markup
+#+INDEX: protected regions
+
+Contractions inside code must not change because the code would break.
+The package recognizes the kind of text from the major mode or the file extension and protects the constructs listed below.
+
+#+CAPTION: Constructs that are left unchanged in each kind of file.
+#+ATTR_LATEX: :booktabs t :align ll
+| Kind of file                    | Protected constructs                                                                                  |
+|---------------------------------+-------------------------------------------------------------------------------------------------------|
+| Org (=.org=)                    | src, example, export, and comment blocks; =verbatim= and ~code~; comment lines; fixed-width lines;    |
+|                                 | property lines; export keyword lines such as =#+LaTeX_HEADER:=; link targets; inline source blocks    |
+| Markdown and Quarto (=.md=, =.qmd=, =.Rmd=) | fenced code blocks (backticks or tildes); inline code; HTML comments; link targets; autolinks |
+| LaTeX (=.tex=)                  | comments; verbatim, Verbatim, lstlisting, minted, comment, and alltt environments; =\verb=;           |
+|                                 | =\lstinline=; =\mintinline=; arguments of =\url=, =\href=, =\cite=, =\ref=, =\label=, and similar     |
+| Plain text (=.txt=)             | nothing                                                                                               |
+
+Open =/tmp/ec-tutorial/sample.org=.
+
+#+begin_example
+,#+TITLE: Things We'll Fix
+,* Why It's Needed
+Grammarly's suggestions weren't consistent. You'll see =don't= kept as verbatim.
+
+,#+begin_src emacs-lisp
+(message "won't be changed")
+,#+end_src
+
+,# This comment isn't changed.
+#+end_example
+
+Run =M-x expand-contractions-buffer=.
+
+#+begin_example
+,#+TITLE: Things We Will Fix
+,* Why It Is Needed
+Grammarly's suggestions were not consistent. You will see =don't= kept as verbatim.
+
+,#+begin_src emacs-lisp
+(message "won't be changed")
+,#+end_src
+
+,# This comment isn't changed.
+#+end_example
+
+The title and heading were expanded in title case.
+The verbatim text, the source block, and the comment were left alone.
+=Grammarly's= is a possessive and is not in the table, so it was not touched.
+
+Repeat the exercise with =sample.md=, =sample.qmd=, and =sample.tex=, and compare each result with its =.expected= file.
+In the LaTeX sample, the comment after =%=, the =\verb= text, the URL, and the =verbatim= environment are unchanged.
+
+If a buffer is in a mode that the package does not recognize, set the kind with a file-local variable.
+
+#+begin_example
+# -*- expand-contractions-buffer-kind: markdown -*-
+#+end_example
+
+To expand everything, including code, set =expand-contractions-protect-markup= to =nil=.
+
+** Lesson 5. Process a file without opening it
+#+INDEX: tutorial!files
+#+INDEX: expand-contractions-file
+#+INDEX: backup files
+
+Run =M-x expand-contractions-file= (=C-c e f=) and choose =/tmp/ec-tutorial/sample.tex=.
+The completion list offers only directories and supported files.
+
+The command does the following.
+
+1. It reads the file into a temporary buffer with its original coding system.
+2. It expands the contractions with the protection rules for LaTeX.
+3. It saves a backup copy (for example =sample.tex~=) when =expand-contractions-make-backup= is non-nil.
+4. It writes the file back only if the text changed.
+5. It reverts any buffer that visits the file so that the buffer shows the new text.
+
+The command refuses to run when a buffer visiting the file has unsaved changes because that would lose your edits.
+
+** Lesson 6. Process many files at once
+#+INDEX: tutorial!directory
+#+INDEX: expand-contractions-directory
+#+INDEX: Dired
+
+- =M-x expand-contractions-directory= (=C-c e d=) processes every supported file in a directory. It asks for confirmation and reports the number of files changed.
+- =C-u M-x expand-contractions-directory= also descends into subdirectories. Hidden directories such as =.git= are skipped.
+- In Dired, mark files with =m= and run =M-x expand-contractions-dired-marked-files=.
+
+You might bind the Dired command to a key.
+
+#+begin_src emacs-lisp
+(with-eval-after-load 'dired
+  (define-key dired-mode-map (kbd "C-c e") #'expand-contractions-dired-marked-files))
+#+end_src
+
+** Lesson 7. Use the package from the shell
+#+INDEX: tutorial!batch
+#+INDEX: expand-contractions-batch
+
+The batch entry point lets you process files from a terminal, a Makefile, or a Git hook.
+
+#+begin_src sh
+emacs --batch -l ~/.emacs.d/site-lisp/expand-contractions.el/expand-contractions.el \
+      -f expand-contractions-batch chapter1.tex notes.md report.qmd
+#+end_src
+
+Each file is reported with the number of contractions that were expanded.
+The exit status is 1 if any file could not be processed.
+
+** Lesson 8. Expand automatically on save
+#+INDEX: tutorial!minor mode
+#+INDEX: expand-contractions-mode
+
+Turn on =expand-contractions-mode= (=C-c e m=) in a buffer.
+Every save now expands contractions first, and the mode line shows =Exp=.
+
+To turn it on for all manuscripts written in Org and LaTeX, add hooks.
+
+#+begin_src emacs-lisp
+(add-hook 'org-mode-hook #'expand-contractions-mode)
+(add-hook 'LaTeX-mode-hook #'expand-contractions-mode)
+#+end_src
+
+To enable it for a single file only, add a file-local variable.
+
+#+begin_example
+# Local Variables:
+# eval: (expand-contractions-mode 1)
+# End:
+#+end_example
+
+** Lesson 9. Customize the contraction table
+#+INDEX: tutorial!customization
+#+INDEX: expand-contractions-add
+#+INDEX: expand-contractions-exclude
+
+- Run =M-x expand-contractions-list= (=C-c e l=) to see the active table.
+- Run =M-x expand-contractions-add= (=C-c e a=) to add or override an entry. Answer =y= to the last question to save it for future sessions.
+- Add words that should never be expanded to =expand-contractions-exclude=.
+- Edit a copy of =contractions.csv= and point =expand-contractions-csv-file= to it.
+
+#+begin_src emacs-lisp
+(setq expand-contractions-user-alist
+      '(("gov't" . "government")
+        ("int'l" . "international")))
+(setq expand-contractions-exclude '("ma'am" "o'clock" "'n'"))
+(setq expand-contractions-csv-file "~/Documents/my-contractions.csv")
+#+end_src
+
+The table is rebuilt automatically when the CSV file or these variables change.
+Run =M-x expand-contractions-reload= to force a rebuild.
+
+** Lesson 10. Call the package from your own code
+#+INDEX: tutorial!API
+#+INDEX: expand-contractions-string
+
+#+begin_src emacs-lisp
+(expand-contractions-string "It's `don't`." 'markdown)
+;; => "It is `don't`."
+
+(expand-contractions-lookup "won't")
+;; => "will not"
+#+end_src
+
+* How ambiguous contractions are resolved
+#+INDEX: disambiguation
+
+Several contractions have more than one expansion.
+The package picks one automatically from the next word, skipping adverbs such as /never/, /just/, and /already/.
+
+#+CAPTION: Rules used to resolve ambiguous contractions.
+#+ATTR_LATEX: :booktabs t :align lll
+| Ending | Default  | Switches when the next word is                                          |
+|--------+----------+-------------------------------------------------------------------------|
+| ='s=   | /is/     | /been/, /got/, /gotten/, or /had/, which select /has/                   |
+| ='d=   | /would/  | /better/, an irregular past participle, or a regular -ed form, which select /had/ |
+
+Examples:
+
+#+begin_example
+He's been ill.        ->  He has been ill.
+He's ill.             ->  He is ill.
+I'd never seen it.    ->  I had never seen it.
+I'd rather not.       ->  I would rather not.
+I'd need help.        ->  I would need help.
+How'd you do it?      ->  How did you do it?
+#+end_example
+
+The word lists are in =expand-contractions-has-triggers=, =expand-contractions-had-triggers=, =expand-contractions-ed-base-verbs=, and =expand-contractions-skippable-words=.
+Set =expand-contractions-disambiguate= to =nil= to always use the expansion in the CSV file.
+
+* Command reference
+#+INDEX: commands
+
+#+CAPTION: Interactive commands and their keys in =expand-contractions-command-map=.
+#+ATTR_LATEX: :booktabs t :align lll
+| Key        | Command                                       | Purpose                                              |
+|------------+-----------------------------------------------+------------------------------------------------------|
+| =C-c e b=  | =expand-contractions-buffer=                  | Expand all contractions in the buffer                |
+| =C-c e r=  | =expand-contractions-region=                  | Expand all contractions in the region                |
+| =C-c e e=  | =expand-contractions-dwim=                    | Use the region if active, else the buffer            |
+| =C-c e p=  | =expand-contractions-at-point=                | Expand the contraction at point                      |
+| =C-c e q=  | =expand-contractions-query-buffer=            | Ask before each expansion                            |
+| =C-c e f=  | =expand-contractions-file=                    | Expand contractions in a file on disk                |
+| =C-c e d=  | =expand-contractions-directory=               | Expand contractions in all files in a directory      |
+| =C-c e c=  | =expand-contractions-count=                   | Count contractions without changing anything         |
+| =C-c e o=  | =expand-contractions-occur=                   | List contractions in an Occur buffer                 |
+| =C-c e l=  | =expand-contractions-list=                    | Show the contraction table                           |
+| =C-c e a=  | =expand-contractions-add=                     | Add or override a table entry                        |
+| =C-c e "=  | =expand-contractions-normalize-quotes-buffer= | Straighten curly quotes only                         |
+| =C-c e m=  | =expand-contractions-mode=                    | Toggle expansion on save                             |
+|            | =expand-contractions-normalize-quotes-region= | Straighten curly quotes in the region                |
+|            | =expand-contractions-dired-marked-files=      | Expand contractions in marked Dired files            |
+|            | =expand-contractions-reload=                  | Reload the CSV file                                  |
+|            | =expand-contractions-batch=                   | Process files named on the command line (batch mode) |
+
+The keys assume that you bound the map to =C-c e=.
+
+* Customization
+#+INDEX: customization
+
+Run =M-x customize-group RET expand-contractions RET= to see every option with its documentation.
+
+#+CAPTION: User options.
+#+ATTR_LATEX: :booktabs t :align lll
+| Variable                                   | Default      | Meaning                                             |
+|--------------------------------------------+--------------+-----------------------------------------------------|
+| =expand-contractions-csv-file=             | bundled file | CSV table of contractions                           |
+| =expand-contractions-user-alist=           | =nil=        | Personal additions that override the CSV            |
+| =expand-contractions-exclude=              | =nil=        | Contractions that are never expanded                |
+| =expand-contractions-normalize-quotes=     | =t=          | =t=, =single=, or =nil= for curly quote handling    |
+| =expand-contractions-disambiguate=         | =t=          | Resolve /is/ or /has/ and /would/ or /had/          |
+| =expand-contractions-title-case=           | =t=          | Capitalize expansions inside titles                 |
+| =expand-contractions-title-small-words=    | list         | Words kept lowercase in titles                      |
+| =expand-contractions-protect-markup=       | =t=          | Leave code and markup unchanged                     |
+| =expand-contractions-protected-patterns=   | list         | Protection rules for each kind of file              |
+| =expand-contractions-file-kinds=           | list         | File extensions and their kinds                     |
+| =expand-contractions-make-backup=          | =t=          | Back up files before writing them                   |
+| =expand-contractions-verbose=              | =t=          | Report counts in the echo area                      |
+
+** Adding your own protection rule
+#+INDEX: customization!protected patterns
+
+Each rule is either =(regexp REGEXP [SUBEXP])= or =(block BEGIN END)=.
+For example, the following rule protects inline math between dollar signs in Markdown files.
+
+#+begin_src emacs-lisp
+(with-eval-after-load 'expand-contractions
+  (push '(regexp "\\$[^$\n]+\\$")
+        (cdr (assq 'markdown expand-contractions-protected-patterns))))
+#+end_src
+
+** Supporting another file type
+#+INDEX: customization!file kinds
+
+Map the extension to one of the existing kinds.
+
+#+begin_src emacs-lisp
+(add-to-list 'expand-contractions-file-kinds '("tex.in" . latex))
+(add-to-list 'expand-contractions-file-kinds '("rst" . text))
+#+end_src
+
+* The contraction table
+#+INDEX: CSV file
+
+=contractions.csv= has a header line and two columns.
+
+#+begin_example
+contraction,expansion
+'bout,about
+ain't,am not
+can't,cannot
+#+end_example
+
+Rules for the file:
+
+- Only the first comma separates the fields, so expansions may not contain commas unless the field is wrapped in double quotes.
+- Blank lines and lines that begin with =#= are ignored.
+- Keys are matched without regard to case, and curly apostrophes in keys are straightened.
+- Contractions that end in ='d= should expand to /would/, and those that end in ='s= should expand to /is/, so that the disambiguation rules work.
+
+** Changes made to the original table
+#+INDEX: CSV file!corrections
+
+The table was revised following the review in =fusion-contractions.md=.
+
+- Duplicates removed: ='cause=, ='twas=, =how'll=, =wasn't=, =i'm'onna=, =y'knonwn=.
+- Stray spaces trimmed from =aren't=, =gimme=, =wanna=, and =shouldn't've=.
+- Corrected expansions: =won't= is /will not/, =doesn't= is /does not/, =ought've= is /ought to have/, =arencha= is /are you not/, =innit= is /is it not/, =Idunno= is /I do not know/.
+- Corrected spellings: =oughtn't=, =oughtn't've=, =y'all'dn't've=, =he'dn't've=, ='tweren't=.
+- Removed entries that are not standard or are fragments: =gon't=, =nall=, =had've=, =to've=, =i'am=, =wonnot=.
+- One expansion per entry: =there's= is /there is/, and all subject plus ='d= forms are /would/. The disambiguation rules supply /has/ and /had/.
+- Added the =when-= family, many double contractions with ='ve=, informal forms such as =coulda=, =betcha=, and =outta=, archaic forms such as ='twill= and ='twixt=, and a few others such as ='n'=, =hafta=, and =s'pose=.
+
+* Limitations
+#+INDEX: limitations
+
+- Possessives that look like contractions are ambiguous. The table includes =everybody's=, =someone's=, and similar entries, so =someone's car= becomes =someone is car=. Add these to =expand-contractions-exclude= if your text uses them as possessives.
+- =ain't= always becomes /am not/ even when /is not/ or /have not/ is meant.
+- The ='s= rule does not switch to /has/ for participles that also act as adjectives (=it's done=).
+- Contractions not in the table, such as =John'll=, are not expanded.
+- Contractions that contain a curly apostrophe are found only when =expand-contractions-normalize-quotes= is =t= or =single=.
+- Protection is based on regular expressions rather than full parsers, so unusual markup may slip through. Inspect the result with =diff= or Magit after processing important files.
+
+* Running the tests
+#+INDEX: tests
+
+#+begin_src sh
+make test       # run the ERT suite
+make compile    # byte-compile and treat warnings as errors
+make checkdoc   # check the documentation strings
+make lint       # run package-lint (install it from MELPA first)
+make examples   # regenerate examples/*.expected after a deliberate change
+#+end_src
+
+The suite has tests for the CSV data, case handling, curly quotes, word boundaries, disambiguation, title case, protection in each kind of file, the file and directory commands, undo, query mode, and the minor mode.
+
+* Submitting to MELPA
+#+INDEX: MELPA
+
+The recipe must include the CSV file.
+
+#+begin_src emacs-lisp
+(expand-contractions :fetcher github
+                     :repo "MooersLab/expand-contractions.el"
+                     :files (:defaults "contractions.csv"))
+#+end_src
+
+Before submitting, make sure that =make compile=, =make checkdoc=, and =make lint= finish without warnings.
+
+* Roadmap
+#+INDEX: roadmap
+
+See [[file:ROADMAP.org][ROADMAP.org]] for planned and suggested enhancements.
+
+* Contributing
+#+INDEX: contributing
+
+Bug reports and pull requests are welcome on GitHub.
+Please add a test for each change in behavior and run =make test= before you open a pull request.
+New contractions may be proposed by editing =contractions.csv=.
+
+* License
+#+INDEX: license
+
+Copyright (C) 2026 Blaine Mooers.
+
+This program is free software. You can redistribute it and modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License or (at your option) any later version.
+See [[file:LICENSE][LICENSE]] for the full text.
