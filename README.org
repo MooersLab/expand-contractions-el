@@ -5,7 +5,7 @@
 #+LaTeX_HEADER: \usepackage{makeidx}
 #+LaTeX_HEADER: \makeindex
 #+OPTIONS: toc:2 num:nil
-![[https://img.shields.io/static/v1?label=expand-contractions-el&message=0.1&color=brightcolor][Version]]
+[[https://github.com/MooersLab/expand-contractions-el][https://img.shields.io/static/v1?label=expand-contractions-el&message=0.1&color=brightgreen]]
 [[https://www.gnu.org/licenses/gpl-3.0][https://img.shields.io/badge/License-GPL%20v3-blue.svg]]
 [[https://img.shields.io/badge/Emacs-27.1%2B-purple.svg]]
 
