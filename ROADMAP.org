@@ -1,0 +1,65 @@
+#+TITLE: Roadmap for expand-contractions.el
+#+LaTeX_HEADER: \usepackage[margin=0.5in]{geometry}
+#+OPTIONS: toc:nil num:nil
+
+This file lists enhancements that users are likely to request.
+Each item names a possible command or option so that the design can be discussed before it is built.
+
+* Accuracy
+#+INDEX: roadmap!accuracy
+
+- [ ] *Categories in the CSV.* Add an optional third column with a category (=standard=, =informal=, =archaic=, =dialect=) and a defcustom =expand-contractions-categories= that selects which categories are active. Many writers want =don't= expanded but want to keep =kinda= or =y'all= in quoted speech.
+- [ ] *Generic suffix rules.* Expand ='ll=, ='ve=, ='re=, and =n't= after any word that is not in the table, for example =John'll= to =John will=. Make it opt in because ='s= and ='d= on names are usually possessives or ambiguous.
+- [ ] *Possessive detection.* Keep =someone's car= as a possessive by checking whether the next word is a noun. A small built-in word list could cover most cases, and an optional external part-of-speech tagger could cover the rest.
+- [ ] *Better ='s= rule.* Switch to /has/ before past participles that are not also adjectives.
+- [ ] *Context for =ain't=.* Choose /am not/, /is not/, /are not/, /has not/, or /have not/ from the subject and the next word.
+- [ ] *Skip quoted speech.* Option =expand-contractions-skip-quotations= to leave dialogue and interview quotations untouched in fiction and qualitative research.
+- [ ] *Math protection.* Protect =$...$=, =\(...\)=, and display math in LaTeX, Org, and Markdown.
+- [ ] *LLM fallback for hard cases.* Send only the ambiguous sentences to a language model through =gptel= or =llm= when the user asks for it.
+
+* Review and reporting
+#+INDEX: roadmap!review
+
+- [ ] *Diff preview.* =expand-contractions-file-diff= shows a unified diff of the proposed changes before writing a file, with a key to apply or cancel.
+- [ ] *Dry run for directories.* =expand-contractions-directory-report= lists files and counts without writing anything.
+- [ ] *Report buffer.* A =compilation-mode= buffer with one line per change (=file:line: don't -> do not=) so that =next-error= visits each change.
+- [ ] *Highlight changes.* Briefly highlight each expansion with overlays or =pulse= so that the changes can be reviewed after a buffer command.
+- [ ] *Statistics.* Report the most frequent contractions in a document to help writers notice habits.
+
+* Linting
+#+INDEX: roadmap!linting
+
+- [ ] *Flymake backend.* =expand-contractions-flymake= marks contractions as notes while you type.
+- [ ] *Flycheck checker.* The same feature for Flycheck users.
+- [ ] *Jinx or flyspell style correction.* Offer the expansion as the first suggestion at point.
+
+* Integration
+#+INDEX: roadmap!integration
+
+- [ ] *Org export filter.* Expand contractions only in exported output, leaving the Org source unchanged, through =org-export-filter-final-output-functions=.
+- [ ] *project.el command.* =expand-contractions-project= processes every supported file in the current project.
+- [ ] *Git pre-commit hook.* A script in =scripts/= that runs the batch entry point on staged files and refuses the commit when contractions remain.
+- [ ] *Magit integration.* Process only the files changed in the working tree.
+- [ ] *Evil operator.* =expand-contractions-evil-operator= so that =g C ip= expands a paragraph.
+- [ ] *Transient menu.* A single menu that shows every command and the current settings.
+- [ ] *Grammarly and LanguageTool workflow.* Run the expansion automatically after a grammar checker applies its suggestions, for example after =lsp-grammarly= or =langtool= code actions.
+- [ ] *Pandoc formats.* Support =.docx=, =.odt=, =.rst=, and =.adoc= by converting through Pandoc to Markdown and back.
+- [ ] *Additional file kinds.* HTML, reStructuredText, AsciiDoc, Typst, and source code comments and docstrings in programming modes.
+
+* Reverse operation
+#+INDEX: roadmap!contract
+
+- [ ] *Contract text.* =expand-contractions-contract-region= turns =do not= into =don't= for informal writing such as blog posts and emails. This needs a curated subset of the table because many expansions are not safe to contract.
+
+* Other languages and dialects
+#+INDEX: roadmap!languages
+
+- [ ] *Per-language tables.* Allow a table per language with =expand-contractions-language=, for example French elision is not a contraction to expand but Portuguese and Italian articulated prepositions might be.
+- [ ] *Dialect profiles.* British and American preferences such as /shan't/ and /needn't/.
+
+* Packaging and documentation
+#+INDEX: roadmap!packaging
+
+- [ ] *Texinfo manual.* Generate an Info manual from README.org with =ox-texinfo= for GNU ELPA or MELPA users who prefer Info.
+- [ ] *Hooks.* =expand-contractions-before-expand-hook= and =expand-contractions-after-expand-hook= for other packages.
+- [ ] *Benchmark.* Add a test that measures the speed on a large book manuscript.

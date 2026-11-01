@@ -1,0 +1,19 @@
+#+TITLE: Changelog for expand-contractions.el
+#+LaTeX_HEADER: \usepackage[margin=0.5in]{geometry}
+#+OPTIONS: toc:nil num:nil
+
+* 0.1.0 (2026-10-25)
+#+INDEX: changelog
+
+First release.
+
+- Expand contractions in the buffer, the region, at point, in a file on disk, in a directory, and in Dired marked files.
+- Batch entry point for shell use.
+- Case preservation and title case detection.
+- Curly quote normalization.
+- Context rules for /is/ or /has/ and /would/ or /had/.
+- Protection of code and markup in Org, Markdown, Quarto, and LaTeX files.
+- Query mode, count, Occur listing, and a table listing.
+- =expand-contractions-mode= expands contractions on save.
+- Revised =contractions.csv= with about 250 entries.
+- ERT test suite, Makefile, and GitHub Actions workflow.
